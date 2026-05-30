@@ -7,18 +7,27 @@
   <style>
     /* ── Variables ─────────────────────────────────────────────── */
     :root {
-      --blue:         #2d3de8;
-      --blue-dim:     #2a3a5a;
-      --blue-faint:   #1a1e3a;
-      --green:        #c5f535;
-      --bg-sidebar:   #0c0c10;
-      --bg-canvas:    #0f0f13;
-      --bg-current:   #0d1128;
-      --border-base:  #1e1e28;
-      --border-future:#2a3a5a;
-      --text-main:    #dddddd;
-      --text-mid:     #888888;
-      --text-dim:     #666666;
+      /* palette */
+      --blue:          #2525F0;
+      --blue-medium:   #5B62D8;
+      --blue-lavender: #C4C9FF;
+      --blue-pale:     #EAEDFF;
+      --blue-dim:      #2E3560;
+      --blue-faint:    #15183A;
+      --lime:          #CCFF44;
+      --grey-light:    #E8E8E8;
+      --grey-mid:      #B8B8B8;
+      --grey-dark:     #6A6A6A;
+      /* surfaces */
+      --bg-sidebar:    #060609;
+      --bg-canvas:     #0B0B10;
+      --bg-current:    #0E1035;
+      --border-base:   #1C1C28;
+      --border-future: #30305A;
+      /* text */
+      --text-main:     #E8E8E8;
+      --text-mid:      #B8B8B8;
+      --text-dim:      #6A6A6A;
     }
 
     /* ── Reset ──────────────────────────────────────────────────── */
@@ -53,19 +62,16 @@
       gap: 0;
     }
     #logo {
-      width: 32px;
-      height: 32px;
-      background: var(--blue);
-      border-radius: 6px;
+      width: 34px;
+      height: 34px;
+      background: var(--lime);
+      border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 11px;
-      font-weight: 500;
-      color: #fff;
-      letter-spacing: 0.5px;
       margin-bottom: 20px;
       flex-shrink: 0;
+      color: #000;
     }
     #nav-top {
       display: flex;
@@ -94,12 +100,12 @@
       transition: background 0.15s, color 0.15s;
     }
     .nav-btn:hover {
-      background: #1a1a24;
-      color: var(--blue);
+      background: #141420;
+      color: var(--blue-lavender);
     }
     .nav-btn.active {
-      background: var(--blue-faint);
-      color: var(--blue);
+      background: var(--lime);
+      color: #000;
     }
 
     /* ── Center column ──────────────────────────────────────────── */
@@ -148,13 +154,13 @@
     }
     .badge-blue {
       background: var(--blue-faint);
-      color: #8899ff;
+      color: var(--blue-lavender);
       border: 1px solid var(--blue-dim);
     }
     .badge-red {
-      background: #1a0d0d;
-      color: #e05555;
-      border: 1px solid #4a1a1a;
+      background: #1A0C0C;
+      color: #E05555;
+      border: 1px solid #4A1818;
     }
 
     /* ── Canvas wrapper ─────────────────────────────────────────── */
@@ -165,7 +171,7 @@
     }
     #canvas-wrap::-webkit-scrollbar { width: 6px; height: 6px; }
     #canvas-wrap::-webkit-scrollbar-track { background: var(--bg-canvas); }
-    #canvas-wrap::-webkit-scrollbar-thumb { background: #2a2a38; border-radius: 3px; }
+    #canvas-wrap::-webkit-scrollbar-thumb { background: #22223A; border-radius: 3px; }
 
     #canvas {
       width: 1800px;
@@ -213,60 +219,61 @@
       font-size: 9px;
       margin-top: 8px;
       letter-spacing: 0.3px;
-      color: #8899ff;
+      color: var(--blue-lavender);
     }
 
-    /* Past nodes */
+    /* Past nodes — solid medium-blue fill, no border */
     .node-past {
-      border: 1.5px solid var(--blue);
-      background: var(--bg-canvas);
+      background: var(--blue-medium);
+      border: none;
     }
-    .node-past .node-label  { color: #2d3de855; }
-    .node-past .node-title  { color: var(--text-main); }
-    .node-past .node-subtitle { color: #2d3de877; }
+    .node-past .node-label    { color: rgba(196, 201, 255, 0.55); }
+    .node-past .node-title    { color: #fff; }
+    .node-past .node-subtitle { color: rgba(196, 201, 255, 0.65); }
 
-    /* Current node */
+    /* Current node — bright blue fill */
     .node-current {
-      border: 2px solid var(--blue);
-      background: var(--bg-current);
+      background: var(--blue);
+      border: none;
     }
-    .node-current .node-label   { color: var(--blue); }
-    .node-current .node-title   { color: var(--text-main); font-size: 14px; }
-    .node-current .node-subtitle { color: #8899ff; }
+    .node-current .node-label    { color: rgba(196, 201, 255, 0.6); }
+    .node-current .node-title    { color: #fff; font-size: 14px; }
+    .node-current .node-subtitle { color: rgba(196, 201, 255, 0.8); }
 
     .here-pill {
       display: inline-block;
       font-size: 9px;
       font-weight: 500;
       letter-spacing: 0.8px;
-      color: #fff;
-      background: var(--blue);
+      color: #000;
+      background: var(--lime);
       border-radius: 20px;
       padding: 2px 8px;
       margin-bottom: 8px;
     }
 
-    /* Future nodes */
+    /* Future nodes — no fill, dashed border (flow diagram style) */
     .node-future {
       border: 1.5px dashed var(--border-future);
-      background: var(--bg-canvas);
+      background: transparent;
       cursor: pointer;
-      transition: border-color 0.15s, background 0.15s;
+      transition: border-color 0.15s;
     }
-    .node-future .node-label  { color: var(--blue-dim); }
-    .node-future .node-title  { color: var(--text-mid); transition: color 0.15s; }
-    .node-future .node-subtitle { color: var(--blue-dim); }
+    .node-future .node-label    { color: var(--grey-dark); }
+    .node-future .node-title    { color: var(--grey-mid); transition: color 0.15s; }
+    .node-future .node-subtitle { color: var(--grey-dark); }
 
     .node-future:hover {
-      border: 1.5px solid var(--green);
+      border: 1.5px solid var(--lime);
     }
     .node-future:hover .node-title { color: var(--text-main); }
 
     .node-future.selected {
-      border: 1.5px solid var(--green) !important;
-      background: #0f1a0a;
+      border: 1.5px solid var(--lime) !important;
+      background: rgba(204, 255, 68, 0.05);
     }
-    .node-future.selected .node-title { color: var(--text-main); }
+    .node-future.selected .node-title    { color: var(--text-main); }
+    .node-future.selected .node-subtitle { color: var(--lime); }
 
     /* ── Detail panel ───────────────────────────────────────────── */
     #detail-panel {
@@ -274,7 +281,7 @@
       bottom: 0;
       left: 0;
       width: 100%;
-      background: #0c0c10;
+      background: #08080D;
       border-top: 1px solid var(--border-base);
       padding: 18px 24px 20px;
       transform: translateY(100%);
@@ -304,7 +311,7 @@
       border-radius: 4px;
       line-height: 1;
     }
-    #detail-close:hover { color: var(--text-main); background: #1a1a24; }
+    #detail-close:hover { color: var(--text-main); background: #141420; }
 
     #detail-stats {
       display: flex;
@@ -339,7 +346,7 @@
     }
     .skill-tag {
       font-size: 10px;
-      color: #8899ff;
+      color: var(--blue-lavender);
       border: 1px solid var(--blue-dim);
       border-radius: 3px;
       padding: 2px 8px;
@@ -396,12 +403,12 @@
     #chat-messages::-webkit-scrollbar-thumb { background: #2a2a38; border-radius: 2px; }
 
     .msg-ai {
-      background: #141420;
+      background: #101018;
       border: 1px solid var(--border-base);
       border-radius: 6px 6px 6px 2px;
       padding: 9px 10px;
       font-size: 11px;
-      color: var(--text-dim);
+      color: var(--grey-dark);
       line-height: 1.55;
       align-self: flex-start;
       max-width: 100%;
@@ -411,7 +418,7 @@
       border-radius: 6px 6px 2px 6px;
       padding: 9px 10px;
       font-size: 11px;
-      color: #8899ff;
+      color: var(--blue-lavender);
       line-height: 1.55;
       align-self: flex-end;
       max-width: 90%;
@@ -462,7 +469,13 @@
 
   <!-- ── Left sidebar ── -->
   <aside id="sidebar">
-    <div id="logo">SS</div>
+    <div id="logo">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 7v-3m6 3v-3"/>
+        <path d="M9 7h6v4.5a3 3 0 0 1-6 0v-4.5z"/>
+        <path d="M12 11.5v2.5m-1 2h2"/>
+      </svg>
+    </div>
     <nav id="nav-top">
       <button class="nav-btn active" title="Home">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -684,7 +697,7 @@ function drawConnectors() {
   const svg = document.getElementById('connectors');
   svg.innerHTML = `<defs>
     <marker id="arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-      <path d="M0,0 L0,6 L6,3 z" fill="#2a3a5a"/>
+      <path d="M0,0 L0,6 L6,3 z" fill="#30305A"/>
     </marker>
   </defs>`;
 
@@ -698,10 +711,10 @@ function drawConnectors() {
     const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     path.setAttribute('d', buildPath(sx, sy, tx, ty));
     path.setAttribute('fill', 'none');
-    path.setAttribute('stroke', isPast ? '#2d3de8' : '#2a3a5a');
-    path.setAttribute('stroke-width', '1.5');
+    path.setAttribute('stroke', isPast ? '#5B62D8' : '#30305A');
+    path.setAttribute('stroke-width', isPast ? '1.5' : '1');
     if (!isPast) {
-      path.setAttribute('stroke-dasharray', '5,4');
+      path.setAttribute('stroke-dasharray', '4,4');
       path.setAttribute('marker-end', 'url(#arrow)');
     }
     svg.appendChild(path);
@@ -710,8 +723,8 @@ function drawConnectors() {
       const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
       c.setAttribute('cx', cx);
       c.setAttribute('cy', cy);
-      c.setAttribute('r', '3');
-      c.setAttribute('fill', isPast ? '#c5f535' : '#2a3a5a');
+      c.setAttribute('r', isPast ? '3.5' : '2.5');
+      c.setAttribute('fill', isPast ? '#CCFF44' : '#30305A');
       svg.appendChild(c);
     });
   });
