@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Singularity Shock</title>
+  <style>
+    /* ── Variables ─────────────────────────────────────────────── */
+    :root {
+      --blue:         #2d3de8;
+      --blue-dim:     #2a3a5a;
+      --blue-faint:   #1a1e3a;
+      --green:        #c5f535;
+      --bg-sidebar:   #0c0c10;
+      --bg-canvas:    #0f0f13;
+      --bg-current:   #0d1128;
+      --border-base:  #1e1e28;
+      --border-future:#2a3a5a;
+      --text-main:    #dddddd;
+      --text-mid:     #888888;
+      --text-dim:     #666666;
+    }
+
+    /* ── Reset ──────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg-canvas);
+      color: var(--text-main);
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 13px;
+      font-weight: 400;
+      overflow: hidden;
+      height: 100vh;
+    }
+
+    /* ── Layout shell ───────────────────────────────────────────── */
+    #app {
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── Left sidebar ───────────────────────────────────────────── */
+    #sidebar {
+      width: 56px;
+      flex-shrink: 0;
+      background: var(--bg-sidebar);
+      border-right: 0.5px solid var(--border-base);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 12px 0;
+      gap: 0;
+    }
+    #logo {
+      width: 32px;
+      height: 32px;
+      background: var(--blue);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 500;
+      color: #fff;
+      letter-spacing: 0.5px;
+      margin-bottom: 20px;
+      flex-shrink: 0;
+    }
+    #nav-top {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      flex: 1;
+    }
+    #nav-bottom {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .nav-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 7px;
+      border: none;
+      background: transparent;
+      color: var(--text-dim);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s, color 0.15s;
+    }
+    .nav-btn:hover {
+      background: #1a1a24;
+      color: var(--blue);
+    }
+    .nav-btn.active {
+      background: var(--blue-faint);
+      color: var(--blue);
+    }
+
+    /* ── Center column ──────────────────────────────────────────── */
+    #center {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    /* ── Top bar ────────────────────────────────────────────────── */
+    #topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      height: 44px;
+      flex-shrink: 0;
+      border-bottom: 0.5px solid var(--border-base);
+    }
+    #user-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    #user-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-main);
+    }
+    #user-role {
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+    #badges {
+      display: flex;
+      gap: 6px;
+    }
+    .badge {
+      font-size: 10px;
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 4px;
+      letter-spacing: 0.3px;
+    }
+    .badge-blue {
+      background: var(--blue-faint);
+      color: #8899ff;
+      border: 1px solid var(--blue-dim);
+    }
+    .badge-red {
+      background: #1a0d0d;
+      color: #e05555;
+      border: 1px solid #4a1a1a;
+    }
+
+    /* ── Canvas wrapper ─────────────────────────────────────────── */
+    #canvas-wrap {
+      flex: 1;
+      overflow: auto;
+      position: relative;
+    }
+    #canvas-wrap::-webkit-scrollbar { width: 6px; height: 6px; }
+    #canvas-wrap::-webkit-scrollbar-track { background: var(--bg-canvas); }
+    #canvas-wrap::-webkit-scrollbar-thumb { background: #2a2a38; border-radius: 3px; }
+
+    #canvas {
+      width: 1800px;
+      height: 700px;
+      position: relative;
+      background: var(--bg-canvas);
+    }
+
+    #connectors {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 1800px;
+      height: 700px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Nodes ──────────────────────────────────────────────────── */
+    .node {
+      position: absolute;
+      border-radius: 6px;
+      padding: 12px 14px;
+      z-index: 1;
+      cursor: default;
+    }
+    .node-label {
+      font-size: 9px;
+      font-weight: 500;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+    .node-title {
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 1.3;
+    }
+    .node-subtitle {
+      font-size: 10px;
+      margin-top: 3px;
+      line-height: 1.4;
+    }
+    .node-meta {
+      font-size: 9px;
+      margin-top: 8px;
+      letter-spacing: 0.3px;
+      color: #8899ff;
+    }
+
+    /* Past nodes */
+    .node-past {
+      border: 1.5px solid var(--blue);
+      background: var(--bg-canvas);
+    }
+    .node-past .node-label  { color: #2d3de855; }
+    .node-past .node-title  { color: var(--text-main); }
+    .node-past .node-subtitle { color: #2d3de877; }
+
+    /* Current node */
+    .node-current {
+      border: 2px solid var(--blue);
+      background: var(--bg-current);
+    }
+    .node-current .node-label   { color: var(--blue); }
+    .node-current .node-title   { color: var(--text-main); font-size: 14px; }
+    .node-current .node-subtitle { color: #8899ff; }
+
+    .here-pill {
+      display: inline-block;
+      font-size: 9px;
+      font-weight: 500;
+      letter-spacing: 0.8px;
+      color: #fff;
+      background: var(--blue);
+      border-radius: 20px;
+      padding: 2px 8px;
+      margin-bottom: 8px;
+    }
+
+    /* Future nodes */
+    .node-future {
+      border: 1.5px dashed var(--border-future);
+      background: var(--bg-canvas);
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .node-future .node-label  { color: var(--blue-dim); }
+    .node-future .node-title  { color: var(--text-mid); transition: color 0.15s; }
+    .node-future .node-subtitle { color: var(--blue-dim); }
+
+    .node-future:hover {
+      border: 1.5px solid var(--green);
+    }
+    .node-future:hover .node-title { color: var(--text-main); }
+
+    .node-future.selected {
+      border: 1.5px solid var(--green) !important;
+      background: #0f1a0a;
+    }
+    .node-future.selected .node-title { color: var(--text-main); }
+
+    /* ── Detail panel ───────────────────────────────────────────── */
+    #detail-panel {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: #0c0c10;
+      border-top: 1px solid var(--border-base);
+      padding: 18px 24px 20px;
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 20;
+    }
+    #detail-panel.visible { transform: translateY(0); }
+
+    #detail-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    #detail-title {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text-main);
+    }
+    #detail-close {
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 14px;
+      padding: 4px 6px;
+      border-radius: 4px;
+      line-height: 1;
+    }
+    #detail-close:hover { color: var(--text-main); background: #1a1a24; }
+
+    #detail-stats {
+      display: flex;
+      gap: 24px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .stat { display: flex; flex-direction: column; gap: 3px; }
+    .stat-label {
+      font-size: 9px;
+      font-weight: 500;
+      letter-spacing: 0.8px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+    .stat-value {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-main);
+    }
+    #detail-description {
+      font-size: 12px;
+      color: var(--text-mid);
+      line-height: 1.6;
+      margin-bottom: 12px;
+      max-width: 680px;
+    }
+    #detail-skills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .skill-tag {
+      font-size: 10px;
+      color: #8899ff;
+      border: 1px solid var(--blue-dim);
+      border-radius: 3px;
+      padding: 2px 8px;
+    }
+
+    /* ── Right chat panel ───────────────────────────────────────── */
+    #chat {
+      width: 280px;
+      flex-shrink: 0;
+      background: var(--bg-sidebar);
+      border-left: 0.5px solid var(--border-base);
+      display: flex;
+      flex-direction: column;
+    }
+    #chat-header {
+      padding: 14px 14px 8px;
+      border-bottom: 0.5px solid var(--border-base);
+      flex-shrink: 0;
+    }
+    #chat-live-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .live-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      flex-shrink: 0;
+    }
+    #chat-live-label {
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.8px;
+      color: var(--text-mid);
+    }
+    #chat-hint {
+      font-size: 9px;
+      color: var(--text-dim);
+      margin-top: 5px;
+      letter-spacing: 0.3px;
+    }
+    #chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    #chat-messages::-webkit-scrollbar { width: 4px; }
+    #chat-messages::-webkit-scrollbar-track { background: transparent; }
+    #chat-messages::-webkit-scrollbar-thumb { background: #2a2a38; border-radius: 2px; }
+
+    .msg-ai {
+      background: #141420;
+      border: 1px solid var(--border-base);
+      border-radius: 6px 6px 6px 2px;
+      padding: 9px 10px;
+      font-size: 11px;
+      color: var(--text-dim);
+      line-height: 1.55;
+      align-self: flex-start;
+      max-width: 100%;
+    }
+    .msg-user {
+      background: var(--blue-faint);
+      border-radius: 6px 6px 2px 6px;
+      padding: 9px 10px;
+      font-size: 11px;
+      color: #8899ff;
+      line-height: 1.55;
+      align-self: flex-end;
+      max-width: 90%;
+    }
+
+    #chat-input-row {
+      display: flex;
+      gap: 6px;
+      padding: 10px;
+      border-top: 0.5px solid var(--border-base);
+      flex-shrink: 0;
+    }
+    #chat-input {
+      flex: 1;
+      background: #141420;
+      border: 1px solid var(--border-base);
+      border-radius: 5px;
+      padding: 7px 10px;
+      font-size: 11px;
+      color: var(--text-main);
+      font-family: inherit;
+      outline: none;
+      resize: none;
+      line-height: 1.4;
+    }
+    #chat-input::placeholder { color: var(--text-dim); }
+    #chat-input:focus { border-color: var(--blue-dim); }
+    #chat-send {
+      width: 32px;
+      height: 32px;
+      background: var(--blue);
+      border: none;
+      border-radius: 5px;
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      align-self: flex-end;
+      transition: opacity 0.15s;
+    }
+    #chat-send:hover { opacity: 0.85; }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ── Left sidebar ── -->
+  <aside id="sidebar">
+    <div id="logo">SS</div>
+    <nav id="nav-top">
+      <button class="nav-btn active" title="Home">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12l-2 0l9 -9l9 9l-2 0"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7"/><path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6"/>
+        </svg>
+      </button>
+      <button class="nav-btn" title="New">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 5l0 14"/><path d="M5 12l14 0"/>
+        </svg>
+      </button>
+      <button class="nav-btn" title="Messages">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 20l1.3 -3.9a9 8 0 1 1 3.4 2.9l-4.7 1"/>
+        </svg>
+      </button>
+      <button class="nav-btn" title="Notifications">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 5a2 2 0 1 1 4 0a7 7 0 0 1 4 6v3a4 4 0 0 0 2 3h-16a4 4 0 0 0 2 -3v-3a7 7 0 0 1 4 -6"/><path d="M9 17v1a3 3 0 0 0 6 0v-1"/>
+        </svg>
+      </button>
+    </nav>
+    <nav id="nav-bottom">
+      <button class="nav-btn" title="Profile">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0"/><path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/>
+        </svg>
+      </button>
+      <button class="nav-btn" title="Settings">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z"/><path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"/>
+        </svg>
+      </button>
+    </nav>
+  </aside>
+
+  <!-- ── Center column ── -->
+  <main id="center">
+
+    <div id="topbar">
+      <div id="user-info">
+        <span id="user-name">Avital Rosen</span>
+        <span id="user-role">Graphic Designer</span>
+      </div>
+      <div id="badges">
+        <span class="badge badge-blue">HRV™ 74</span>
+        <span class="badge badge-red">Expiry 2031</span>
+      </div>
+    </div>
+
+    <div id="canvas-wrap">
+      <div id="canvas">
+        <svg id="connectors" xmlns="http://www.w3.org/2000/svg"></svg>
+        <!-- nodes injected by JS -->
+      </div>
+
+      <!-- Detail panel sits in canvas-wrap, not canvas, so it doesn't scroll away -->
+      <div id="detail-panel">
+        <div id="detail-header">
+          <span id="detail-title"></span>
+          <button id="detail-close">✕</button>
+        </div>
+        <div id="detail-stats">
+          <div class="stat">
+            <span class="stat-label">Fit Score</span>
+            <span class="stat-value" id="dp-fit"></span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Salary</span>
+            <span class="stat-value" id="dp-salary"></span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Expiry</span>
+            <span class="stat-value" id="dp-expiry"></span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Transition</span>
+            <span class="stat-value" id="dp-transition"></span>
+          </div>
+        </div>
+        <p id="detail-description"></p>
+        <div id="detail-skills"></div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ── Right chat panel ── -->
+  <aside id="chat">
+    <div id="chat-header">
+      <div id="chat-live-row">
+        <div class="live-dot"></div>
+        <span id="chat-live-label">AI ANALYST — LIVE</span>
+      </div>
+      <div id="chat-hint">Watching your cursor</div>
+    </div>
+    <div id="chat-messages"></div>
+    <div id="chat-input-row">
+      <textarea id="chat-input" rows="1" placeholder="Ask about any role…"></textarea>
+      <button id="chat-send" title="Send">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 14l11 -11"/><path d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a.55 .55 0 0 1 0 -1l18 -6.5"/>
+        </svg>
+      </button>
+    </div>
+  </aside>
+
+</div>
+
+<script>
+/* ── Node data ────────────────────────────────────────────────── */
+const NODES = [
+  { id:'node-1',  type:'past',    label:'EDUCATION', title:'BFA Design',          subtitle:'Bezalel Academy · 2015–2018', x:60,   y:310 },
+  { id:'node-2',  type:'past',    label:'ROLE',      title:'Junior Designer',      subtitle:'Studio Nord · 2018–2020',    x:240,  y:290 },
+  { id:'node-3',  type:'past',    label:'ROLE',      title:'Brand Designer',       subtitle:'Fiverr · 2020–2022',         x:420,  y:315 },
+  { id:'node-4',  type:'past',    label:'ROLE',      title:'Art Director',         subtitle:'Freelance · 2022–2025',      x:600,  y:295 },
+  {
+    id:'node-5', type:'current', label:'CURRENT ROLE', title:'Graphic Designer', subtitle:'NOW · 2025',
+    hrv:74, expiry:2031, elasticity:'62%', x:800, y:275
+  },
+  {
+    id:'node-6', type:'future', ring:'close', title:'UX Designer', fit:88, expiry:2034, salary:'$95k', transition:'12 months',
+    description:'Leverage your visual foundation to own end-to-end user experience design. High overlap with current skill set — the shortest path to a defensible career.',
+    skills:['Figma','User Research','Prototyping','IA','Usability Testing'], x:1020, y:180
+  },
+  {
+    id:'node-7', type:'future', ring:'close', title:'Brand Strategist', fit:79, expiry:2032, salary:'$88k', transition:'14 months',
+    description:'Expand from execution to brand architecture. Builds on your freelance art direction but requires developing strategic consulting and client communication skills.',
+    skills:['Brand Identity','Market Positioning','Narrative Design','Workshop Facilitation'], x:1020, y:390
+  },
+  {
+    id:'node-8', type:'future', ring:'mid', title:'Product Manager', fit:60, expiry:2036, salary:'$110k', transition:'24 months',
+    description:'High ceiling, longer ramp. Your design background is an asset in PM roles but you will need to build business, metrics, and roadmap skills from scratch.',
+    skills:['Roadmapping','Stakeholder Mgmt','Metrics','Agile','SQL Basics'], x:1250, y:95
+  },
+  {
+    id:'node-9', type:'future', ring:'mid', title:'UX Researcher', fit:65, expiry:2035, salary:'$90k', transition:'18 months',
+    description:'A natural extension of UX Design that bets on human insight as a durable skill. Lower automation risk than production design, strong in AI-assisted product orgs.',
+    skills:['Qualitative Methods','Survey Design','Data Analysis','Synthesis'], x:1250, y:260
+  },
+  {
+    id:'node-10', type:'future', ring:'mid', title:'Art Director (Senior)', fit:75, expiry:2033, salary:'$92k', transition:'16 months',
+    description:'The direct upward move. Strong fit but constrained expiry — this role is being compressed by generative AI at the high end and commoditized at the low end.',
+    skills:['Creative Direction','Campaign Strategy','Team Leadership','Brand Systems'], x:1250, y:425
+  },
+  {
+    id:'node-11', type:'future', ring:'far', title:'AI Experience Director', fit:46, expiry:2042, salary:'$145k', transition:'48 months',
+    description:'A speculative but high-value role emerging at the intersection of AI systems and human experience design. Requires significant reinvention — high risk, highest ceiling.',
+    skills:['AI Systems Literacy','Prompt Architecture','Experience Strategy','Org Design'], x:1480, y:150
+  },
+  {
+    id:'node-12', type:'future', ring:'far', title:'Design Coach', fit:38, expiry:2040, salary:'$75k', transition:'36 months',
+    description:'Leverage accumulated craft knowledge into teaching and coaching. Lower income ceiling but high autonomy and low automation risk. Often combined with consulting.',
+    skills:['Curriculum Design','Coaching Frameworks','Portfolio Review','Community Building'], x:1480, y:365
+  },
+];
+
+/* ── Edge data ────────────────────────────────────────────────── */
+const EDGES = [
+  { from:'node-1', to:'node-2',  style:'past' },
+  { from:'node-2', to:'node-3',  style:'past' },
+  { from:'node-3', to:'node-4',  style:'past' },
+  { from:'node-4', to:'node-5',  style:'past' },
+  { from:'node-5', to:'node-6',  style:'future' },
+  { from:'node-5', to:'node-7',  style:'future' },
+  { from:'node-6', to:'node-8',  style:'future' },
+  { from:'node-6', to:'node-9',  style:'future' },
+  { from:'node-7', to:'node-10', style:'future' },
+  { from:'node-9', to:'node-11', style:'future' },
+  { from:'node-10',to:'node-12', style:'future' },
+];
+
+/* ── Render nodes ─────────────────────────────────────────────── */
+function renderNodes() {
+  const canvas = document.getElementById('canvas');
+  NODES.forEach(n => {
+    const el = document.createElement('div');
+    el.id = n.id;
+    const w = n.type === 'current' ? 200 : n.type === 'past' ? 160 : 175;
+    el.className = `node node-${n.type}`;
+    el.style.left = n.x + 'px';
+    el.style.top  = n.y + 'px';
+    el.style.width = w + 'px';
+
+    if (n.type === 'current') {
+      el.innerHTML =
+        `<div class="here-pill">YOU ARE HERE</div>` +
+        `<div class="node-label">${n.label}</div>` +
+        `<div class="node-title">${n.title}</div>` +
+        `<div class="node-subtitle">${n.subtitle}</div>` +
+        `<div class="node-meta">HRV ${n.hrv}&nbsp;&nbsp;·&nbsp;&nbsp;Expiry ${n.expiry}&nbsp;&nbsp;·&nbsp;&nbsp;${n.elasticity}</div>`;
+    } else if (n.type === 'past') {
+      el.innerHTML =
+        `<div class="node-label">${n.label}</div>` +
+        `<div class="node-title">${n.title}</div>` +
+        `<div class="node-subtitle">${n.subtitle}</div>`;
+    } else {
+      el.innerHTML =
+        `<div class="node-label">FIT ${n.fit}%</div>` +
+        `<div class="node-title">${n.title}</div>` +
+        `<div class="node-subtitle">Expiry ${n.expiry}</div>`;
+    }
+    canvas.appendChild(el);
+  });
+}
+
+/* ── SVG connector drawing ────────────────────────────────────── */
+function getNodeRect(id) {
+  const el = document.getElementById(id);
+  return { x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight };
+}
+
+function buildPath(sx, sy, tx, ty) {
+  const offset = Math.max(80, Math.abs(tx - sx) * 0.45);
+  return `M ${sx} ${sy} C ${sx + offset} ${sy}, ${tx - offset} ${ty}, ${tx} ${ty}`;
+}
+
+function drawConnectors() {
+  const svg = document.getElementById('connectors');
+  svg.innerHTML = `<defs>
+    <marker id="arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L6,3 z" fill="#2a3a5a"/>
+    </marker>
+  </defs>`;
+
+  EDGES.forEach(edge => {
+    const a = getNodeRect(edge.from);
+    const b = getNodeRect(edge.to);
+    const sx = a.x + a.w,    sy = a.y + a.h / 2;
+    const tx = b.x,           ty = b.y + b.h / 2;
+    const isPast = edge.style === 'past';
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', buildPath(sx, sy, tx, ty));
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', isPast ? '#2d3de8' : '#2a3a5a');
+    path.setAttribute('stroke-width', '1.5');
+    if (!isPast) {
+      path.setAttribute('stroke-dasharray', '5,4');
+      path.setAttribute('marker-end', 'url(#arrow)');
+    }
+    svg.appendChild(path);
+
+    [[sx, sy], [tx, ty]].forEach(([cx, cy]) => {
+      const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      c.setAttribute('cx', cx);
+      c.setAttribute('cy', cy);
+      c.setAttribute('r', '3');
+      c.setAttribute('fill', isPast ? '#c5f535' : '#2a3a5a');
+      svg.appendChild(c);
+    });
+  });
+}
+
+window.addEventListener('resize', () => {
+  clearTimeout(window._rt);
+  window._rt = setTimeout(drawConnectors, 100);
+});
+
+/* ── Chat helpers ─────────────────────────────────────────────── */
+function addAIMessage(text) {
+  const container = document.getElementById('chat-messages');
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-ai';
+  bubble.textContent = text;
+  container.appendChild(bubble);
+  container.scrollTop = container.scrollHeight;
+}
+
+function addUserMessage(text) {
+  const container = document.getElementById('chat-messages');
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-user';
+  bubble.textContent = text;
+  container.appendChild(bubble);
+  container.scrollTop = container.scrollHeight;
+}
+
+function generateRoleMessage(n) {
+  const quality = n.fit >= 75 ? 'strong overlap with your current profile'
+                : n.fit >= 60 ? 'moderate overlap — some skill-building required'
+                : 'significant reinvention needed';
+  return `Modeling ${n.title}. Fit score ${n.fit}% — ${quality}. Estimated transition: ${n.transition}. Target salary: ${n.salary}. Expiry runway: ${n.expiry - 2025} years.`;
+}
+
+function generateHoverComment(n) {
+  if (n.type === 'past') {
+    return `${n.title} — ${n.subtitle}. This anchors your craft foundation and remains part of your value proposition today.`;
+  }
+  if (n.type === 'current') {
+    return `Your current position. HRV ${n.hrv} reflects solid but non-exceptional market value. The ${n.expiry} expiry gives you a ${n.expiry - 2025}-year window before role compression accelerates.`;
+  }
+  return `${n.title}: ${n.fit}% fit, ${n.transition} to transition, ${n.salary} ceiling. Expiry ${n.expiry} — ${n.expiry - 2025} years of runway from today.`;
+}
+
+function generateCannedResponse(text) {
+  const t = text.toLowerCase();
+  if (t.includes('salary') || t.includes('money') || t.includes('pay'))
+    return 'Salary ranges reflect 2025 market medians for mid-level roles in major metros. Senior track adds 15–30%. Freelance and coaching paths have higher variance.';
+  if (t.includes('fit') || t.includes('match') || t.includes('skill'))
+    return 'Fit scores weight skill overlap (60%), domain proximity (25%), and retraining cost (15%). A score above 70% means a direct transition is realistic within 18 months.';
+  if (t.includes('transition') || t.includes('switch') || t.includes('move'))
+    return 'Transition time assumes 10–15 hrs/week of active upskilling alongside your current role. Bootcamps or full-time study can compress timelines by 30–40%.';
+  if (t.includes('risk') || t.includes('safe') || t.includes('stable'))
+    return 'Lower automation risk roles tend to combine strategic judgment, client relationships, and human-centered work. UX Researcher and Design Coach rank highest on this axis.';
+  if (t.includes('expiry') || t.includes('future') || t.includes('ai'))
+    return 'Expiry years model when AI-assisted tooling is likely to compress demand for that role by 40%+. Far-ring roles have longer runways precisely because they require high human judgment.';
+  return "I can model any path on the graph. Click a future node to run a full fit simulation, or ask me about salary, transitions, skill gaps, or automation risk for a specific role.";
+}
+
+/* ── Detail panel ─────────────────────────────────────────────── */
+function showDetailPanel(n) {
+  document.getElementById('detail-title').textContent = n.title;
+  document.getElementById('dp-fit').textContent = n.fit + '%';
+  document.getElementById('dp-salary').textContent = n.salary;
+  document.getElementById('dp-expiry').textContent = n.expiry;
+  document.getElementById('dp-transition').textContent = n.transition;
+  document.getElementById('detail-description').textContent = n.description;
+
+  const skillsEl = document.getElementById('detail-skills');
+  skillsEl.innerHTML = '';
+  n.skills.forEach(skill => {
+    const tag = document.createElement('span');
+    tag.className = 'skill-tag';
+    tag.textContent = skill;
+    skillsEl.appendChild(tag);
+  });
+
+  document.getElementById('detail-panel').classList.add('visible');
+}
+
+document.getElementById('detail-close').addEventListener('click', () => {
+  document.getElementById('detail-panel').classList.remove('visible');
+  document.querySelectorAll('.node-future.selected').forEach(n => n.classList.remove('selected'));
+});
+
+/* ── Node interactions ────────────────────────────────────────── */
+document.getElementById('canvas').addEventListener('click', e => {
+  const node = e.target.closest('.node-future');
+  if (!node) return;
+  document.querySelectorAll('.node-future.selected').forEach(n => n.classList.remove('selected'));
+  node.classList.add('selected');
+  const data = NODES.find(n => n.id === node.id);
+  showDetailPanel(data);
+  addAIMessage(generateRoleMessage(data));
+});
+
+/* ── Sidebar nav active state ─────────────────────────────────── */
+document.querySelectorAll('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    // Only toggle within the same nav group
+    const parent = btn.closest('nav');
+    if (parent && parent.id === 'nav-top') {
+      parent.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+  });
+});
+
+/* ── Chat input ───────────────────────────────────────────────── */
+function sendUserMessage() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+  addUserMessage(text);
+  input.value = '';
+  input.style.height = 'auto';
+  setTimeout(() => addAIMessage(generateCannedResponse(text)), 600);
+}
+
+document.getElementById('chat-send').addEventListener('click', sendUserMessage);
+document.getElementById('chat-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendUserMessage(); }
+});
+
+/* ── Mousemove AI comments ────────────────────────────────────── */
+let lastAICommentTime = 0;
+const AI_COMMENT_INTERVAL = 8000;
+
+document.getElementById('canvas-wrap').addEventListener('mousemove', e => {
+  const now = Date.now();
+  if (now - lastAICommentTime < AI_COMMENT_INTERVAL) return;
+
+  const wrap = document.getElementById('canvas-wrap');
+  const rect = wrap.getBoundingClientRect();
+  const mx = e.clientX - rect.left + wrap.scrollLeft;
+  const my = e.clientY - rect.top  + wrap.scrollTop;
+
+  let nearest = null;
+  let minDist = Infinity;
+  NODES.forEach(n => {
+    const el = document.getElementById(n.id);
+    const cx = el.offsetLeft + el.offsetWidth  / 2;
+    const cy = el.offsetTop  + el.offsetHeight / 2;
+    const dist = Math.hypot(cx - mx, cy - my);
+    if (dist < minDist) { minDist = dist; nearest = n; }
+  });
+
+  if (nearest && minDist < 300) {
+    lastAICommentTime = now;
+    addAIMessage(generateHoverComment(nearest));
+  }
+});
+
+/* ── Opening messages ─────────────────────────────────────────── */
+[
+  [800,  "Connected. I've loaded Avital's career graph — 12 nodes mapped, 7 paths forward."],
+  [1600, "Your current role has an HRV score of 74. The 2031 expiry window is 5 years out. Let's find leverage."],
+  [2400, "Click any future node to model a transition. I'll run fit analysis and flag skill gaps in real time."],
+].forEach(([delay, text]) => setTimeout(() => addAIMessage(text), delay));
+
+/* ── Init ─────────────────────────────────────────────────────── */
+renderNodes();
+requestAnimationFrame(drawConnectors);
+</script>
+</body>
+</html>
